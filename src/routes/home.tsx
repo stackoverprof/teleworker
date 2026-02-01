@@ -83,11 +83,11 @@ app.get("/", async (c) => {
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                class="lucide lucide-rss-icon lucide-rss"
+                class="lucide lucide-message-square-warning-icon lucide-message-square-warning"
               >
-                <path d="M4 11a9 9 0 0 1 9 9" />
-                <path d="M4 4a16 16 0 0 1 16 16" />
-                <circle cx="5" cy="19" r="1" />
+                <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" />
+                <path d="M12 15h.01" />
+                <path d="M12 7v4" />
               </svg>
               <h1>Teleworker</h1>
             </div>
