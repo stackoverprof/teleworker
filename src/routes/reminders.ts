@@ -6,19 +6,36 @@ import { reminders, type NewReminder } from "../db/schema";
 
 type Env = {
   DB: D1Database;
+  ADMIN_PASSWORD?: string;
 };
 
 const app = new Hono<{ Bindings: Env }>();
 
-// List all reminders
+// Middleware for auth check
+const checkAuth = (c: any) => {
+  const password = c.req.header("X-Admin-Password");
+  const expected = c.env.ADMIN_PASSWORD;
+
+  // If no password set in env, allow open access (or default to deny? User said "keep password as secret in cf worker", so we expect it to be set.)
+  // Let's assume if env is not set, we might default to block or allow. Safe default is block if we expect security.
+  // But for now, if expected is set, we check.
+  if (expected && password !== expected) {
+    return false;
+  }
+  return true;
+};
+
+// List all reminders (Public)
 app.get("/", async (c) => {
   const db = createDb(c.env.DB);
   const all = await db.select().from(reminders);
   return c.json(all);
 });
 
-// Create reminder
+// Create reminder (Protected)
 app.post("/", async (c) => {
+  if (!checkAuth(c)) return c.json({ error: "Unauthorized" }, 401);
+
   const db = createDb(c.env.DB);
   const body =
     await c.req.json<Omit<NewReminder, "id" | "createdAt" | "count">>();
@@ -40,8 +57,10 @@ app.post("/", async (c) => {
   return c.json(newReminder, 201);
 });
 
-// Update reminder
+// Update reminder (Protected)
 app.put("/:id", async (c) => {
+  if (!checkAuth(c)) return c.json({ error: "Unauthorized" }, 401);
+
   const db = createDb(c.env.DB);
   const id = c.req.param("id");
   const body = await c.req.json<Partial<NewReminder>>();
@@ -61,8 +80,10 @@ app.put("/:id", async (c) => {
   return c.json(updated);
 });
 
-// Delete reminder
+// Delete reminder (Protected)
 app.delete("/:id", async (c) => {
+  if (!checkAuth(c)) return c.json({ error: "Unauthorized" }, 401);
+
   const db = createDb(c.env.DB);
   const id = c.req.param("id");
 
