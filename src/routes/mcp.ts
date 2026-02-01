@@ -240,4 +240,55 @@ app.post("/messages", async (c) => {
   return c.text("Accepted", 202);
 });
 
+// 3. GET /client-script - Helper to get the local bridge script
+app.get("/client-script", (c) => {
+  const scriptProp = `
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { EventSource } from "eventsource";
+
+// Config from Arg or Default
+const SERVER_URL = process.argv[2] || "https://teleworker.erbin.workers.dev/mcp/sse?token=YOUR_ADMIN_PASSWORD";
+
+async function main() {
+  // 1. Connect as Client to Remote SSE
+  // We need to polyfill EventSource for Node < 18 or if SDK needs it
+  global.EventSource = EventSource;
+
+  const transport = new SSEClientTransport(new URL(SERVER_URL));
+  const client = new Client({ name: "bridge-client", version: "1.0" }, { capabilities: {} });
+
+  await client.connect(transport);
+
+  // 2. Serve as Server to Local Stdio (Claude)
+  const server = new Server({ name: "bridge-server", version: "1.0" }, {
+    capabilities: { tools: {} }
+  });
+
+  // Forward Tool List
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const result = await client.listTools();
+    return { tools: result.tools };
+  });
+
+  // Forward Tool Calls
+  server.setRequestHandler(CallToolRequestSchema, async (req) => {
+    const result = await client.callTool(req.params);
+    return result;
+  });
+
+  const stdioTransport = new StdioServerTransport();
+  await server.connect(stdioTransport);
+  
+  console.error("Bridge running connecting to " + SERVER_URL);
+}
+
+main().catch(console.error);
+`;
+  return c.text(scriptProp);
+});
+
 export { app as mcpRoute };
