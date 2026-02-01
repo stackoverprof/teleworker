@@ -36,25 +36,32 @@ app.get("/", async (c) => {
 app.post("/", async (c) => {
   if (!checkAuth(c)) return c.json({ error: "Unauthorized" }, 401);
 
-  const db = createDb(c.env.DB);
-  const body =
-    await c.req.json<Omit<NewReminder, "id" | "createdAt" | "count">>();
+  try {
+    const db = createDb(c.env.DB);
+    const body =
+      await c.req.json<Omit<NewReminder, "id" | "createdAt" | "count">>();
 
-  const newReminder: NewReminder = {
-    id: nanoid(),
-    name: body.name,
-    message: body.message,
-    chatIds: body.chatIds,
-    when: body.when,
-    apiUrl: body.apiUrl || null,
-    ring: body.ring ?? 0,
-    active: body.active ?? 1,
-    count: 0,
-    createdAt: new Date().toISOString(),
-  };
+    const newReminder: NewReminder = {
+      id: nanoid(),
+      name: body.name,
+      message: body.message,
+      chatIds: Array.isArray(body.chatIds)
+        ? body.chatIds.join(",")
+        : body.chatIds,
+      when: body.when,
+      apiUrl: body.apiUrl || null,
+      ring: body.ring ?? 0,
+      active: body.active ?? 1,
+      count: 0,
+      createdAt: new Date().toISOString(),
+    };
 
-  await db.insert(reminders).values(newReminder);
-  return c.json(newReminder, 201);
+    await db.insert(reminders).values(newReminder);
+    return c.json(newReminder, 201);
+  } catch (e: any) {
+    console.error("Error creating reminder:", e);
+    return c.json({ error: e.message }, 500);
+  }
 });
 
 // Update reminder (Protected)

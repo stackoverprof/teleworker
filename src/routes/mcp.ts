@@ -174,14 +174,13 @@ app.get("/sse", async (c) => {
         const newReminder: NewReminder = {
           id: nanoid(),
           ...body,
-          chatIds: JSON.stringify(body.chatIds), // FIX: Serialize array to string for DB
+          chatIds: body.chatIds.join(","), // FIX: Serialize array to comma-separated string
           ring: body.ring ?? 0,
           active: body.active ?? 1,
           apiUrl: body.apiUrl || null,
           count: 0,
           createdAt: new Date().toISOString(),
-        };
-        // Drizzle/SQLite expects chatIds to be a string per strict schema?
+        }; // Drizzle/SQLite expects chatIds to be a string per strict schema?
         // Actually schema says text, but we used JSON.parse/stringify manually before?
         // Let's check schema. If chatIds is text, we need to stringify it if it's an array.
         await db.insert(reminders).values(newReminder as any); // Cast to any to avoid strict type mismatch if schema expects string

@@ -4,6 +4,11 @@ import { reminders } from "../db/schema";
 import { matchesCron, isCronExpression } from "../lib/cron";
 import { sendMessage } from "./telegram";
 import { makeCall } from "./callmebot";
+import {
+  isExtremeFear,
+  isExtremeGreed,
+} from "../routes/microservices/fng/utils";
+import { isFiveMinutesBeforeFajr } from "../routes/microservices/prayer/utils";
 
 export interface Env {
   DB: D1Database;
@@ -23,21 +28,42 @@ export async function processReminders(env: Env): Promise<void> {
 
   for (const reminder of activeReminders) {
     const shouldTrigger = await checkShouldTrigger(reminder, now);
-    if (!shouldTrigger) continue;
+    if (!shouldTrigger) {
+      continue;
+    }
 
     // Check conditional API if set
     if (reminder.apiUrl) {
       try {
-        const res = await fetch(reminder.apiUrl);
-        const text = (await res.text()).trim();
-        if (text !== "1") continue;
-      } catch {
+        let text = "0";
+
+        // Internal Logic Bypass to avoid Error 1042 (Self-fetch)
+        if (reminder.apiUrl.includes("/microservices/fng/extreme-fear")) {
+          text = (await isExtremeFear()) ? "1" : "0";
+        } else if (
+          reminder.apiUrl.includes("/microservices/fng/extreme-greed")
+        ) {
+          text = (await isExtremeGreed()) ? "1" : "0";
+        } else if (reminder.apiUrl.includes("/microservices/prayer/wake-up")) {
+          text = (await isFiveMinutesBeforeFajr()) ? "1" : "0";
+        } else {
+          // External fetch
+          const res = await fetch(reminder.apiUrl);
+          text = (await res.text()).trim();
+        }
+
+        if (text !== "1") {
+          continue;
+        }
+      } catch (e) {
+        console.error(`API check failed for ${reminder.name}:`, e);
         continue; // Skip on API error
       }
     }
 
     // Send notifications to all chat IDs
     const chatIds = reminder.chatIds.split(",").map((id) => id.trim());
+
     for (const chatId of chatIds) {
       try {
         await sendMessage(chatId, reminder.message, env.TELEGRAM_BOT_TOKEN);
