@@ -409,6 +409,7 @@ header {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--gray);
+  white-space: nowrap;
 }
 
 
