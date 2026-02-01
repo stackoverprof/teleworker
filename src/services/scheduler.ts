@@ -7,10 +7,12 @@ import { makeCall } from "./callmebot";
 import {
   isExtremeFear,
   isExtremeGreed,
+  getFearGreedIndex,
 } from "../routes/microservices/fng/utils";
 import {
   isFiveMinutesBeforeFajr,
-  is35MinutesBeforeSunrise,
+  is10MinutesBeforeSunrise,
+  getPrayerTimes,
 } from "../routes/microservices/prayer/utils";
 
 export interface Env {
@@ -38,29 +40,74 @@ export async function processReminders(env: Env): Promise<void> {
     // Check conditional API if set
     if (reminder.apiUrl) {
       try {
-        let text = "0";
+        let shouldTriggerCondition = false;
+        let contextData: Record<string, string | number> = {};
 
         // Internal Logic Bypass to avoid Error 1042 (Self-fetch)
         if (reminder.apiUrl.includes("/microservices/fng/extreme-fear")) {
-          text = (await isExtremeFear()) ? "1" : "0";
+          const data = await getFearGreedIndex();
+          if (data.value <= 24) {
+            shouldTriggerCondition = true;
+            contextData = {
+              value: data.value,
+              classification: data.classification,
+            };
+          }
         } else if (
           reminder.apiUrl.includes("/microservices/fng/extreme-greed")
         ) {
-          text = (await isExtremeGreed()) ? "1" : "0";
+          const data = await getFearGreedIndex();
+          if (data.value >= 76) {
+            shouldTriggerCondition = true;
+            contextData = {
+              value: data.value,
+              classification: data.classification,
+            };
+          }
+          // New Merged Condition
+        } else if (reminder.apiUrl.includes("/microservices/fng/extreme-any")) {
+          const data = await getFearGreedIndex();
+          if (data.value <= 24 || data.value >= 76) {
+            shouldTriggerCondition = true;
+            contextData = {
+              value: data.value,
+              classification: data.classification,
+            };
+          }
         } else if (
           reminder.apiUrl.includes("/microservices/prayer/wake-up-sunrise")
         ) {
-          text = (await is35MinutesBeforeSunrise()) ? "1" : "0";
+        } else if (
+          reminder.apiUrl.includes("/microservices/prayer/wake-up-sunrise")
+        ) {
+          if (await is10MinutesBeforeSunrise()) {
+            shouldTriggerCondition = true;
+            const times = await getPrayerTimes();
+            contextData = { time: times.Sunrise };
+          }
         } else if (reminder.apiUrl.includes("/microservices/prayer/wake-up")) {
-          text = (await isFiveMinutesBeforeFajr()) ? "1" : "0";
+          if (await isFiveMinutesBeforeFajr()) {
+            shouldTriggerCondition = true;
+            const times = await getPrayerTimes();
+            contextData = { time: times.Fajr };
+          }
         } else {
           // External fetch
           const res = await fetch(reminder.apiUrl);
-          text = (await res.text()).trim();
+          const text = (await res.text()).trim();
+          if (text === "1") shouldTriggerCondition = true;
         }
 
-        if (text !== "1") {
+        if (!shouldTriggerCondition) {
           continue;
+        }
+
+        // Dynamic Variable Replacement
+        for (const [key, value] of Object.entries(contextData)) {
+          reminder.message = reminder.message.replace(
+            new RegExp(`{{${key}}}`, "g"),
+            String(value),
+          );
         }
       } catch (e) {
         console.error(`API check failed for ${reminder.name}:`, e);

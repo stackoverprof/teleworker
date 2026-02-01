@@ -36,3 +36,11 @@ export async function isExtremeGreed(): Promise<boolean> {
   const { value } = await getFearGreedIndex();
   return value >= 76;
 }
+
+/**
+ * Check if index is ANY Extreme (Fear or Greed)
+ */
+export async function isExtremeStatus(): Promise<boolean> {
+  const { value } = await getFearGreedIndex();
+  return value <= 24 || value >= 76;
+}
