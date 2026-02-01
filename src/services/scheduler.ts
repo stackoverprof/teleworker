@@ -71,8 +71,9 @@ export async function processReminders(env: Env): Promise<void> {
           },
         };
 
+        const apiUrl = reminder.apiUrl; // Narrowed by the if (reminder.apiUrl) check
         const matchingRoute = Object.keys(handlers).find((route) =>
-          reminder.apiUrl.includes(route),
+          apiUrl.includes(route),
         );
 
         if (matchingRoute) {
