@@ -31,6 +31,21 @@ function formatSchedule(schedule: string) {
   }
 }
 
+function formatMessage(message: string) {
+  // Split by {{variable}} pattern, keeping the separators
+  const parts = message.split(/(\{\{[^}]+\}\})/g);
+  return (
+    <>
+      {parts.map((part) => {
+        if (part.match(/^\{\{[^}]+\}\}$/)) {
+          return <span class="message-param">{part}</span>;
+        }
+        return part;
+      })}
+    </>
+  );
+}
+
 const app = new Hono<{ Bindings: Env }>();
 
 app.get("/", async (c) => {
@@ -94,7 +109,7 @@ app.get("/", async (c) => {
                       <span class="status-dot inactive" title="Inactive"></span>
                     )}
                   </div>
-                  <p class="message">{reminder.message}</p>
+                  <p class="message">{formatMessage(reminder.message)}</p>
                 </div>
                 <div class="card-meta">
                   <span class="meta-item" title={reminder.when}>
@@ -358,6 +373,17 @@ header {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 400px;
+}
+
+.message-param {
+  font-family: var(--mono);
+  background: #222;
+  border: 1px solid #333;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #aaa;
+  margin: 0 2px;
 }
 
 .card-meta {
