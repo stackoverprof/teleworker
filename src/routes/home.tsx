@@ -32,13 +32,13 @@ function formatSchedule(schedule: string) {
 }
 
 function formatMessage(message: string) {
-  // Split by {{variable}} pattern, keeping the separators
   const parts = message.split(/(\{\{[^}]+\}\})/g);
   return (
     <>
       {parts.map((part) => {
-        if (part.match(/^\{\{[^}]+\}\}$/)) {
-          return <span class="message-param">{part}</span>;
+        const match = part.match(/^\{\{([^}]+)\}\}$/);
+        if (match) {
+          return <span class="message-param">{match[1]}</span>;
         }
         return part;
       })}
@@ -309,12 +309,21 @@ header {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 12px 16px;
+  padding: 16px; /* Increased padding */
   display: flex;
+  flex-direction: column; /* Column on mobile by default or row? Let's check query */
+  gap: 12px; /* Gap between main and meta */
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start; /* Align start */
   transition: border-color 0.2s;
-  height: 60px; /* Fixed compact height */
+  /* Removed fixed height */
+}
+
+@media (min-width: 600px) {
+  .card {
+     flex-direction: row;
+     align-items: center;
+  }
 }
 
 .card:hover {
@@ -325,7 +334,8 @@ header {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
+  gap: 6px; /* Increased gap */
+  width: 100%;
 }
 
 .card-top {
