@@ -1,11 +1,13 @@
 import { Hono } from "hono";
 import { remindersRoute } from "./routes/reminders";
+import { microservices } from "./routes/microservices";
 import { processReminders, type Env } from "./services/scheduler";
 
 const app = new Hono<{ Bindings: Env }>();
 
 // Routes
 app.route("/reminders", remindersRoute);
+app.route("/microservices", microservices);
 app.get("/health", (c) => c.json({ ok: true }));
 
 // Export for CF Workers
