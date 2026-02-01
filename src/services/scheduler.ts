@@ -51,6 +51,7 @@ export async function processReminders(env: Env): Promise<void> {
             contextData = {
               value: data.value,
               classification: data.classification,
+              action: "buying",
             };
           }
         } else if (
@@ -62,6 +63,7 @@ export async function processReminders(env: Env): Promise<void> {
             contextData = {
               value: data.value,
               classification: data.classification,
+              action: "selling",
             };
           }
           // New Merged Condition
@@ -72,6 +74,7 @@ export async function processReminders(env: Env): Promise<void> {
             contextData = {
               value: data.value,
               classification: data.classification,
+              action: data.value <= 24 ? "buying" : "selling",
             };
           }
         } else if (
