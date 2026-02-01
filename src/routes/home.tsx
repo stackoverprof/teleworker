@@ -113,7 +113,7 @@ app.get("/", async (c) => {
                     <h3>{reminder.name}</h3>
                     {reminder.apiUrl && (
                       <span class="badge-api" title={reminder.apiUrl}>
-                        API
+                        {reminder.apiUrl.startsWith("/") ? "INTERNAL" : "API"}
                       </span>
                     )}
                     {reminder.active ? (

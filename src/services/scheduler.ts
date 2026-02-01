@@ -71,18 +71,21 @@ export async function processReminders(env: Env): Promise<void> {
           },
         };
 
-        const apiUrl = reminder.apiUrl; // Narrowed by the if (reminder.apiUrl) check
-        const matchingRoute = Object.keys(handlers).find((route) =>
-          apiUrl.includes(route),
-        );
+        const apiUrl = reminder.apiUrl;
+        const isInternal = apiUrl.startsWith("/");
 
-        if (matchingRoute) {
-          const result = await handlers[matchingRoute]();
-          shouldTriggerCondition = result.trigger;
-          contextData = result.data;
+        if (isInternal) {
+          if (handlers[apiUrl]) {
+            const result = await handlers[apiUrl]();
+            shouldTriggerCondition = result.trigger;
+            contextData = result.data;
+          } else {
+            console.error(`Unknown internal route: ${apiUrl}`);
+            continue;
+          }
         } else {
-          // External fetch
-          const res = await fetch(reminder.apiUrl);
+          // External fetch (must start with http)
+          const res = await fetch(apiUrl);
           const text = (await res.text()).trim();
           if (text === "1") shouldTriggerCondition = true;
         }
