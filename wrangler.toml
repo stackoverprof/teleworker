@@ -1,0 +1,18 @@
+name = "teleworker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "teleworker-db"
+database_id = "placeholder"
+
+[vars]
+# Set your Telegram username for CallMeBot
+CALLMEBOT_USER = "@yourusername"
+
+# Secrets (set via: wrangler secret put TELEGRAM_BOT_TOKEN)
+# TELEGRAM_BOT_TOKEN = "your-bot-token"

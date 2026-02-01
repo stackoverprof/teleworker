@@ -1,0 +1,23 @@
+{
+  "name": "teleworker",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply teleworker-db --local",
+    "db:migrate:prod": "wrangler d1 migrations apply teleworker-db --remote"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "nanoid": "^5.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "drizzle-kit": "^0.31.8",
+    "drizzle-orm": "^0.45.1",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.0.0"
+  }
+}

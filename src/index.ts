@@ -1,0 +1,21 @@
+import { Hono } from "hono";
+import { remindersRoute } from "./routes/reminders";
+import { processReminders, type Env } from "./services/scheduler";
+
+const app = new Hono<{ Bindings: Env }>();
+
+// Routes
+app.route("/reminders", remindersRoute);
+app.get("/health", (c) => c.json({ ok: true }));
+
+// Export for CF Workers
+export default {
+  fetch: app.fetch,
+  scheduled: async (
+    _event: ScheduledEvent,
+    env: Env,
+    ctx: ExecutionContext,
+  ) => {
+    ctx.waitUntil(processReminders(env));
+  },
+};
