@@ -8,7 +8,10 @@ import {
   isExtremeFear,
   isExtremeGreed,
 } from "../routes/microservices/fng/utils";
-import { isFiveMinutesBeforeFajr } from "../routes/microservices/prayer/utils";
+import {
+  isFiveMinutesBeforeFajr,
+  is35MinutesBeforeSunrise,
+} from "../routes/microservices/prayer/utils";
 
 export interface Env {
   DB: D1Database;
@@ -44,6 +47,10 @@ export async function processReminders(env: Env): Promise<void> {
           reminder.apiUrl.includes("/microservices/fng/extreme-greed")
         ) {
           text = (await isExtremeGreed()) ? "1" : "0";
+        } else if (
+          reminder.apiUrl.includes("/microservices/prayer/wake-up-sunrise")
+        ) {
+          text = (await is35MinutesBeforeSunrise()) ? "1" : "0";
         } else if (reminder.apiUrl.includes("/microservices/prayer/wake-up")) {
           text = (await isFiveMinutesBeforeFajr()) ? "1" : "0";
         } else {

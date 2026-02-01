@@ -77,6 +77,27 @@ export async function isFiveMinutesBeforeFajr(): Promise<boolean> {
   const wakeUpTime = new Date(fajrDate.getTime() - 5 * 60 * 1000);
 
   // Compare with current time (ignore seconds)
+  return now.getMinutes() === wakeUpTime.getMinutes();
+}
+
+/**
+ * Check if it is currently exactly 35 minutes before Sunrise
+ */
+export async function is35MinutesBeforeSunrise(): Promise<boolean> {
+  const timings = await getPrayerTimes();
+  const sunriseTime = timings.Sunrise; // "05:30" etc
+
+  const [sunriseHour, sunriseMinute] = sunriseTime.split(":").map(Number);
+
+  const now = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+  );
+  const sunriseDate = new Date(now);
+  sunriseDate.setHours(sunriseHour, sunriseMinute, 0, 0);
+
+  // Subtract 35 minutes
+  const wakeUpTime = new Date(sunriseDate.getTime() - 35 * 60 * 1000);
+
   return (
     now.getHours() === wakeUpTime.getHours() &&
     now.getMinutes() === wakeUpTime.getMinutes()

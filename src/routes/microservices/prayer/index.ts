@@ -1,5 +1,9 @@
 import { Hono } from "hono";
-import { isFiveMinutesBeforeFajr, getPrayerTimes } from "./utils";
+import {
+  isFiveMinutesBeforeFajr,
+  is35MinutesBeforeSunrise,
+  getPrayerTimes,
+} from "./utils";
 
 const app = new Hono();
 
@@ -18,6 +22,15 @@ app.get("/", async (c) => {
  */
 app.get("/wake-up", async (c) => {
   const shouldWakeUp = await isFiveMinutesBeforeFajr();
+  return c.text(shouldWakeUp ? "1" : "0");
+});
+
+/**
+ * GET /microservices/prayer/wake-up-sunrise
+ * Returns "1" if 35 mins before Sunrise, else "0"
+ */
+app.get("/wake-up-sunrise", async (c) => {
+  const shouldWakeUp = await is35MinutesBeforeSunrise();
   return c.text(shouldWakeUp ? "1" : "0");
 });
 
