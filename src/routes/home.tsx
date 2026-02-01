@@ -4,6 +4,33 @@ import { reminders } from "../db/schema";
 import { eq } from "drizzle-orm";
 import type { Env } from "../services/scheduler";
 
+import cronstrue from "cronstrue";
+
+function formatSchedule(schedule: string) {
+  try {
+    // Check if it's a cron string first
+    const cronText = cronstrue.toString(schedule);
+    // Wrap in span for client-side enhancement
+    return (
+      <span class="local-cron" data-cron={schedule}>
+        {cronText} (UTC)
+      </span>
+    );
+  } catch (e) {
+    // If cronstrue fails, it might be a date
+    const date = new Date(schedule);
+    if (!isNaN(date.getTime())) {
+      // Render a span that the client-side script will update
+      return (
+        <span class="local-time" data-time={schedule}>
+          {schedule}
+        </span>
+      );
+    }
+    return schedule;
+  }
+}
+
 const app = new Hono<{ Bindings: Env }>();
 
 app.get("/", async (c) => {
@@ -53,37 +80,68 @@ app.get("/", async (c) => {
           <section class="grid">
             {activeReminders.map((reminder) => (
               <div class="card">
-                <div class="card-header">
-                  <h3>{reminder.name}</h3>
-                  {reminder.active ? (
-                    <span class="badge active">Active</span>
-                  ) : (
-                    <span class="badge inactive">Inactive</span>
-                  )}
+                <div class="card-main">
+                  <div class="card-top">
+                    <h3>{reminder.name}</h3>
+                    {reminder.apiUrl && (
+                      <span class="badge-api" title={reminder.apiUrl}>
+                        API
+                      </span>
+                    )}
+                    {reminder.active ? (
+                      <span class="status-dot active" title="Active"></span>
+                    ) : (
+                      <span class="status-dot inactive" title="Inactive"></span>
+                    )}
+                  </div>
+                  <p class="message">{reminder.message}</p>
                 </div>
-                <div class="card-body">
-                  <div class="row">
-                    <span class="label">Message</span>
-                    <p class="mono">{reminder.message}</p>
-                  </div>
-                  <div class="row">
-                    <span class="label">Schedule</span>
-                    <p class="mono">{reminder.when}</p>
-                  </div>
-                  <div class="row">
-                    <span class="label">Action</span>
-                    <p class="mono">
-                      {reminder.ring ? "Message + Call 📞" : "Message Only 💬"}
-                    </p>
-                  </div>
-                  {reminder.apiUrl && (
-                    <div class="row">
-                      <span class="label">Condition API</span>
-                      <p class="mono truncate" title={reminder.apiUrl}>
-                        {reminder.apiUrl}
-                      </p>
-                    </div>
-                  )}
+                <div class="card-meta">
+                  <span class="meta-item" title={reminder.when}>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    {formatSchedule(reminder.when)}
+                  </span>
+                  <span class="meta-item" title="Action">
+                    {reminder.ring ? (
+                      <>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.05 12.05 0 0 0 .57 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.05 12.05 0 0 0 2.81.57A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        Call
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        Chat
+                      </>
+                    )}
+                  </span>
                 </div>
               </div>
             ))}
@@ -97,6 +155,43 @@ app.get("/", async (c) => {
           <footer>
             <p>Deployed on Cloudflare Workers</p>
           </footer>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+            // Format Dates
+            document.querySelectorAll('.local-time').forEach(el => {
+              try {
+                const date = new Date(el.dataset.time);
+                if(!isNaN(date)) {
+                   el.textContent = date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+                }
+              } catch(e){}
+            });
+
+            // Format Daily Crons
+            document.querySelectorAll('.local-cron').forEach(el => {
+                const cron = el.dataset.cron.trim();
+                // Match "m h * * *" (Daily)
+                const dailyMatch = cron.match(/^(\\d+)\\s+(\\d+)\\s+\\*\\s+\\*\\s+\\*$/);
+                
+                if (dailyMatch) {
+                    const min = parseInt(dailyMatch[1]);
+                    const hour = parseInt(dailyMatch[2]);
+                    
+                    const date = new Date();
+                    date.setUTCHours(hour, min, 0, 0);
+                    
+                    const timeStr = date.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'});
+                    el.textContent = "Daily at " + timeStr;
+                    el.title = "Converted from " + hour + ":" + (min<10?'0'+min:min) + " UTC";
+                } else if (cron === "* * * * *") {
+                    el.textContent = "Every minute";
+                }
+                // Leave complex crons as server-rendered text
+            });
+          `,
+            }}
+          />
         </main>
       </body>
     </html>,
@@ -191,91 +286,103 @@ header {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr;
+  gap: 12px;
 }
 
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 20px;
-  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.2s;
+  height: 60px; /* Fixed compact height */
 }
 
 .card:hover {
   border-color: #555;
-  transform: translateY(-2px);
 }
 
-.card-header {
+.card-main {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
 }
 
-.card-header h3 {
-  font-size: 16px;
-  font-weight: 600;
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 99px;
+.card-top h3 {
+  font-size: 14px;
   font-weight: 500;
-  text-transform: uppercase;
+  color: var(--fg);
+  margin: 0;
 }
 
-.badge.active {
-  background: #111;
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-dot.active {
+  background: #00ff95;
+  box-shadow: 0 0 6px rgba(0, 255, 149, 0.4);
+}
+
+.status-dot.inactive {
+  background: #333;
+}
+
+.badge-api {
+  font-size: 10px;
+  color: var(--gray);
   border: 1px solid #333;
-  color: #fff;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
-.badge.inactive {
-  background: #111;
-  border: 1px solid #333;
-  color: #666;
+.message {
+  font-size: 13px;
+  color: var(--gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
 }
 
-.row {
-  margin-bottom: 12px;
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.row:last-child {
-  margin-bottom: 0;
-}
-
-.label {
-  display: block;
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
   font-size: 12px;
   color: var(--gray);
-  margin-bottom: 4px;
 }
 
-.mono {
-  font-family: var(--mono);
-  font-size: 13px;
-  color: #ccc;
-  word-break: break-all;
-}
-
-.truncate {
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
 
 .empty-state {
-    grid-column: 1 / -1;
     text-align: center;
     padding: 40px;
-    border: 1px dashed var(--border);
-    border-radius: 8px;
     color: var(--gray);
+    font-size: 13px;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
 }
 
 footer {
