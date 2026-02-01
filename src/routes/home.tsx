@@ -379,10 +379,7 @@ header {
 .message {
   font-size: 13px;
   color: var(--gray);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 400px;
+  line-height: 1.5;
 }
 
 .message-param {
