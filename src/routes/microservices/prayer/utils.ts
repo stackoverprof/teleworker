@@ -1,3 +1,10 @@
+import {
+  TIMEZONE,
+  CITY,
+  COUNTRY,
+  PRAYER_METHOD as METHOD,
+} from "../../../lib/constants";
+
 export interface PrayerTimes {
   Fajr: string;
   Sunrise: string;
@@ -15,30 +22,35 @@ export interface AladhanResponse {
   };
 }
 
-const CITY = "Sidoarjo";
-const COUNTRY = "Indonesia";
-const METHOD = 20; // Kemenag RI
 const API_URL = `http://api.aladhan.com/v1/timingsByCity?city=${CITY}&country=${COUNTRY}&method=${METHOD}`;
 
 /**
  * Fetch prayer times for Sidoarjo with daily caching
  */
 export async function getPrayerTimes(): Promise<PrayerTimes> {
-  const cacheUrl = new URL(API_URL);
-  const today = new Date().toLocaleDateString("en-CA", {
-    timeZone: "Asia/Jakarta",
-  }); // YYYY-MM-DD
-  cacheUrl.searchParams.set("date", today); // Force cache key per day
+  const dateObj = new Date(
+    new Date().toLocaleString("en-US", { timeZone: TIMEZONE }),
+  );
+  const day = String(dateObj.getDate()).padStart(2, "0");
+  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const year = dateObj.getFullYear();
 
-  const cacheKey = new Request(cacheUrl.toString());
+  const dateString = `${day}-${month}-${year}`; // DD-MM-YYYY for Aladhan API
+
+  const url = new URL(API_URL);
+  url.searchParams.set("date", dateString);
+
+  const cacheKey = new Request(url.toString());
   const cache = caches.default;
 
   // Check cache
   let response = await cache.match(cacheKey);
 
   if (!response) {
-    console.log("Fetching fresh prayer times from Aladhan...");
-    response = await fetch(API_URL);
+    console.log(
+      `Fetching fresh prayer times from Aladhan for ${dateString}...`,
+    );
+    response = await fetch(url.toString());
 
     // Clone to cache
     response = new Response(response.body, response);
@@ -68,7 +80,7 @@ export async function isFiveMinutesBeforeFajr(): Promise<boolean> {
 
   // Create Date object for Fajr today
   const now = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+    new Date().toLocaleString("en-US", { timeZone: TIMEZONE }),
   );
   const fajrDate = new Date(now);
   fajrDate.setHours(fajrHour, fajrMinute, 0, 0);

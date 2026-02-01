@@ -22,23 +22,7 @@ export async function getFearGreedIndex(): Promise<FngData> {
 }
 
 /**
- * Check if index is in Extreme Fear zone (0-24)
- */
-export async function isExtremeFear(): Promise<boolean> {
-  const { value } = await getFearGreedIndex();
-  return value <= 24;
-}
-
-/**
- * Check if index is in Extreme Greed zone (76-100)
- */
-export async function isExtremeGreed(): Promise<boolean> {
-  const { value } = await getFearGreedIndex();
-  return value >= 76;
-}
-
-/**
- * Check if index is ANY Extreme (Fear or Greed)
+ * Check if index is in extreme status (<= 24 or >= 76)
  */
 export async function isExtremeStatus(): Promise<boolean> {
   const { value } = await getFearGreedIndex();

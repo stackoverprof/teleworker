@@ -4,11 +4,7 @@ import { reminders } from "../db/schema";
 import { matchesCron, isCronExpression } from "../lib/cron";
 import { sendMessage } from "./telegram";
 import { makeCall } from "./callmebot";
-import {
-  isExtremeFear,
-  isExtremeGreed,
-  getFearGreedIndex,
-} from "../routes/microservices/fng/utils";
+import { getFearGreedIndex } from "../routes/microservices/fng/utils";
 import {
   isFiveMinutesBeforeFajr,
   is10MinutesBeforeSunrise,
@@ -44,56 +40,45 @@ export async function processReminders(env: Env): Promise<void> {
         let contextData: Record<string, string | number> = {};
 
         // Internal Logic Bypass to avoid Error 1042 (Self-fetch)
-        if (reminder.apiUrl.includes("/microservices/fng/extreme-fear")) {
-          const data = await getFearGreedIndex();
-          if (data.value <= 24) {
-            shouldTriggerCondition = true;
-            contextData = {
-              value: data.value,
-              classification: data.classification,
-              action: "buying",
+        const handlers: Record<
+          string,
+          () => Promise<{
+            trigger: boolean;
+            data: Record<string, string | number>;
+          }>
+        > = {
+          "/microservices/fng/extreme-any": async () => {
+            const data = await getFearGreedIndex();
+            const trigger = data.value <= 24 || data.value >= 76;
+            return {
+              trigger,
+              data: {
+                value: data.value,
+                classification: data.classification,
+                action: data.value <= 24 ? "buying" : "selling",
+              },
             };
-          }
-        } else if (
-          reminder.apiUrl.includes("/microservices/fng/extreme-greed")
-        ) {
-          const data = await getFearGreedIndex();
-          if (data.value >= 76) {
-            shouldTriggerCondition = true;
-            contextData = {
-              value: data.value,
-              classification: data.classification,
-              action: "selling",
-            };
-          }
-          // New Merged Condition
-        } else if (reminder.apiUrl.includes("/microservices/fng/extreme-any")) {
-          const data = await getFearGreedIndex();
-          if (data.value <= 24 || data.value >= 76) {
-            shouldTriggerCondition = true;
-            contextData = {
-              value: data.value,
-              classification: data.classification,
-              action: data.value <= 24 ? "buying" : "selling",
-            };
-          }
-        } else if (
-          reminder.apiUrl.includes("/microservices/prayer/wake-up-sunrise")
-        ) {
-        } else if (
-          reminder.apiUrl.includes("/microservices/prayer/wake-up-sunrise")
-        ) {
-          if (await is10MinutesBeforeSunrise()) {
-            shouldTriggerCondition = true;
+          },
+          "/microservices/prayer/wake-up-sunrise": async () => {
+            const trigger = await is10MinutesBeforeSunrise();
             const times = await getPrayerTimes();
-            contextData = { time: times.Sunrise };
-          }
-        } else if (reminder.apiUrl.includes("/microservices/prayer/wake-up")) {
-          if (await isFiveMinutesBeforeFajr()) {
-            shouldTriggerCondition = true;
+            return { trigger, data: { time: times.Sunrise } };
+          },
+          "/microservices/prayer/wake-up": async () => {
+            const trigger = await isFiveMinutesBeforeFajr();
             const times = await getPrayerTimes();
-            contextData = { time: times.Fajr };
-          }
+            return { trigger, data: { time: times.Fajr } };
+          },
+        };
+
+        const matchingRoute = Object.keys(handlers).find((route) =>
+          reminder.apiUrl.includes(route),
+        );
+
+        if (matchingRoute) {
+          const result = await handlers[matchingRoute]();
+          shouldTriggerCondition = result.trigger;
+          contextData = result.data;
         } else {
           // External fetch
           const res = await fetch(reminder.apiUrl);

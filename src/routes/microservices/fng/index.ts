@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { getFearGreedIndex, isExtremeFear, isExtremeGreed } from "./utils";
+import { getFearGreedIndex, isExtremeStatus } from "./utils";
 
 const app = new Hono();
 
@@ -13,20 +13,11 @@ app.get("/", async (c) => {
 });
 
 /**
- * GET /microservices/fng/extreme-fear
- * Returns "1" if extreme fear, "0" otherwise
+ * GET /microservices/fng/extreme-any
+ * Returns "1" if either extreme fear or greed, "0" otherwise
  */
-app.get("/extreme-fear", async (c) => {
-  const result = await isExtremeFear();
-  return c.text(result ? "1" : "0");
-});
-
-/**
- * GET /microservices/fng/extreme-greed
- * Returns "1" if extreme greed, "0" otherwise
- */
-app.get("/extreme-greed", async (c) => {
-  const result = await isExtremeGreed();
+app.get("/extreme-any", async (c) => {
+  const result = await isExtremeStatus();
   return c.text(result ? "1" : "0");
 });
 
