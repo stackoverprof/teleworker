@@ -8,11 +8,8 @@ crons = ["* * * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "teleworker-db"
-database_id = "placeholder"
+database_id = "df74560f-a911-44f0-9aa0-b6f873b48e49"
+migrations_dir = "drizzle/migrations"
 
 [vars]
-# Set your Telegram username for CallMeBot
-CALLMEBOT_USER = "@yourusername"
-
-# Secrets (set via: wrangler secret put TELEGRAM_BOT_TOKEN)
-# TELEGRAM_BOT_TOKEN = "your-bot-token"
+CALLMEBOT_USER = "@errbint"
