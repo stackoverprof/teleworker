@@ -75,15 +75,11 @@ function formatSchedule(
     );
   }
 
-  try {
-    const formatted = formatCronToWib(schedule);
-    return (
-      <span class="local-cron" data-cron={schedule}>
-        {formatted}
-      </span>
-    );
-  } catch (e) {
-    // If parsing fails, it might be a date
+  // Check if it's an ISO date string (contains T and ends with Z or has timezone)
+  if (
+    schedule.includes("T") &&
+    (schedule.endsWith("Z") || schedule.includes("+"))
+  ) {
     const date = new Date(schedule);
     if (!isNaN(date.getTime())) {
       // Convert UTC to WIB (+7 hours)
@@ -112,6 +108,17 @@ function formatSchedule(
         </span>
       );
     }
+  }
+
+  // Try parsing as cron expression
+  try {
+    const formatted = formatCronToWib(schedule);
+    return (
+      <span class="local-cron" data-cron={schedule}>
+        {formatted}
+      </span>
+    );
+  } catch (e) {
     return schedule;
   }
 }
