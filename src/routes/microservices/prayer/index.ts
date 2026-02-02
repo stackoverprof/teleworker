@@ -3,6 +3,7 @@ import {
   isFiveMinutesBeforeFajr,
   is10MinutesBeforeSunrise,
   getPrayerTimes,
+  getNextTriggerTimes,
 } from "./utils";
 
 const app = new Hono();
@@ -32,6 +33,15 @@ app.get("/wake-up", async (c) => {
 app.get("/wake-up-sunrise", async (c) => {
   const shouldWakeUp = await is10MinutesBeforeSunrise();
   return c.text(shouldWakeUp ? "1" : "0");
+});
+
+/**
+ * GET /microservices/prayer/next-trigger
+ * Returns next trigger times for Fajr and Sunrise alarms
+ */
+app.get("/next-trigger", async (c) => {
+  const times = await getNextTriggerTimes();
+  return c.json(times);
 });
 
 app.get("/test", (c) => c.text("Prayer Service Reachable"));

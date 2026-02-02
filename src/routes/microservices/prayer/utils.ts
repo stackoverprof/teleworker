@@ -118,3 +118,45 @@ export async function is10MinutesBeforeSunrise(): Promise<boolean> {
     now.getMinutes() === wakeUpTime.getMinutes()
   );
 }
+
+/**
+ * Get next trigger times for Fajr and Sunrise alarms
+ */
+export async function getNextTriggerTimes(): Promise<{
+  fajrWakeUp: string;
+  sunriseWakeUp: string;
+}> {
+  const timings = await getPrayerTimes();
+  const now = new Date(
+    new Date().toLocaleString("en-US", { timeZone: TIMEZONE }),
+  );
+
+  // Parse Fajr time
+  const [fajrHour, fajrMinute] = timings.Fajr.split(":").map(Number);
+  const fajrDate = new Date(now);
+  fajrDate.setHours(fajrHour, fajrMinute, 0, 0);
+  const fajrWakeUp = new Date(fajrDate.getTime() - 5 * 60 * 1000);
+
+  // Parse Sunrise time
+  const [sunriseHour, sunriseMinute] = timings.Sunrise.split(":").map(Number);
+  const sunriseDate = new Date(now);
+  sunriseDate.setHours(sunriseHour, sunriseMinute, 0, 0);
+  const sunriseWakeUp = new Date(sunriseDate.getTime() - 10 * 60 * 1000);
+
+  // If times have passed today, show tomorrow
+  if (fajrWakeUp <= now) {
+    fajrWakeUp.setDate(fajrWakeUp.getDate() + 1);
+  }
+  if (sunriseWakeUp <= now) {
+    sunriseWakeUp.setDate(sunriseWakeUp.getDate() + 1);
+  }
+
+  // Format as HH:MM
+  const formatTime = (d: Date) =>
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  return {
+    fajrWakeUp: formatTime(fajrWakeUp),
+    sunriseWakeUp: formatTime(sunriseWakeUp),
+  };
+}

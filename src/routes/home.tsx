@@ -3,10 +3,27 @@ import { createDb } from "../db";
 import { reminders } from "../db/schema";
 import { eq } from "drizzle-orm";
 import type { Env } from "../services/scheduler";
+import { getNextTriggerTimes } from "./microservices/prayer/utils";
 
 import cronstrue from "cronstrue";
 
-function formatSchedule(schedule: string) {
+function formatSchedule(
+  schedule: string,
+  apiUrl: string | null,
+  nextTrigger: { fajrWakeUp: string; sunriseWakeUp: string } | null,
+) {
+  // For prayer-based conditional reminders, show next trigger time
+  if (apiUrl === "/microservices/prayer/wake-up" && nextTrigger) {
+    return (
+      <span class="next-trigger">Tomorrow at {nextTrigger.fajrWakeUp}</span>
+    );
+  }
+  if (apiUrl === "/microservices/prayer/wake-up-sunrise" && nextTrigger) {
+    return (
+      <span class="next-trigger">Tomorrow at {nextTrigger.sunriseWakeUp}</span>
+    );
+  }
+
   try {
     // Check if it's a cron string first
     const cronText = cronstrue.toString(schedule);
@@ -51,6 +68,14 @@ const app = new Hono<{ Bindings: Env }>();
 app.get("/", async (c) => {
   const db = createDb(c.env.DB);
   const activeReminders = await db.select().from(reminders);
+
+  // Fetch next trigger times for prayer reminders
+  let nextTrigger: { fajrWakeUp: string; sunriseWakeUp: string } | null = null;
+  try {
+    nextTrigger = await getNextTriggerTimes();
+  } catch (e) {
+    console.error("Failed to fetch next trigger times:", e);
+  }
 
   return c.html(
     <html>
@@ -137,7 +162,11 @@ app.get("/", async (c) => {
                       <circle cx="12" cy="12" r="10"></circle>
                       <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    {formatSchedule(reminder.when)}
+                    {formatSchedule(
+                      reminder.when,
+                      reminder.apiUrl,
+                      nextTrigger,
+                    )}
                   </span>
                   <span class="meta-item" title="Action">
                     {reminder.ring ? (
