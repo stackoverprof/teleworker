@@ -120,11 +120,12 @@ export async function is10MinutesBeforeSunrise(): Promise<boolean> {
 }
 
 /**
- * Get next trigger times for Fajr and Sunrise alarms
+ * Get next trigger times for Fajr, Sunrise, and Friday prayer alarms
  */
 export async function getNextTriggerTimes(): Promise<{
   fajrWakeUp: string;
   sunriseWakeUp: string;
+  fridayPrayer: string;
 }> {
   const timings = await getPrayerTimes();
   const now = new Date(
@@ -143,12 +144,27 @@ export async function getNextTriggerTimes(): Promise<{
   sunriseDate.setHours(sunriseHour, sunriseMinute, 0, 0);
   const sunriseWakeUp = new Date(sunriseDate.getTime() - 10 * 60 * 1000);
 
-  // If times have passed today, show tomorrow
+  // Parse Dhuhr time for Friday prayer (30 mins before)
+  const [dhuhrHour, dhuhrMinute] = timings.Dhuhr.split(":").map(Number);
+  const fridayPrayerDate = new Date(now);
+  // Find next Friday
+  const daysUntilFriday = (5 - now.getDay() + 7) % 7 || 7; // If today is Friday and time passed, next week
+  fridayPrayerDate.setDate(
+    now.getDate() + (now.getDay() === 5 ? 0 : daysUntilFriday),
+  );
+  fridayPrayerDate.setHours(dhuhrHour, dhuhrMinute, 0, 0);
+  const fridayPrayer = new Date(fridayPrayerDate.getTime() - 30 * 60 * 1000);
+
+  // If times have passed today, show tomorrow (for daily alarms)
   if (fajrWakeUp <= now) {
     fajrWakeUp.setDate(fajrWakeUp.getDate() + 1);
   }
   if (sunriseWakeUp <= now) {
     sunriseWakeUp.setDate(sunriseWakeUp.getDate() + 1);
+  }
+  // If Friday prayer time has passed today (and today is Friday), show next week
+  if (now.getDay() === 5 && fridayPrayer <= now) {
+    fridayPrayer.setDate(fridayPrayer.getDate() + 7);
   }
 
   // Format as HH:MM
@@ -158,6 +174,7 @@ export async function getNextTriggerTimes(): Promise<{
   return {
     fajrWakeUp: formatTime(fajrWakeUp),
     sunriseWakeUp: formatTime(sunriseWakeUp),
+    fridayPrayer: formatTime(fridayPrayer),
   };
 }
 

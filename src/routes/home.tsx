@@ -10,7 +10,11 @@ import cronstrue from "cronstrue";
 function formatSchedule(
   schedule: string,
   apiUrl: string | null,
-  nextTrigger: { fajrWakeUp: string; sunriseWakeUp: string } | null,
+  nextTrigger: {
+    fajrWakeUp: string;
+    sunriseWakeUp: string;
+    fridayPrayer: string;
+  } | null,
 ) {
   // For prayer-based conditional reminders, show next trigger time
   if (apiUrl === "/microservices/prayer/wake-up" && nextTrigger) {
@@ -21,6 +25,11 @@ function formatSchedule(
   if (apiUrl === "/microservices/prayer/wake-up-sunrise" && nextTrigger) {
     return (
       <span class="next-trigger">Tomorrow at {nextTrigger.sunriseWakeUp}</span>
+    );
+  }
+  if (apiUrl === "/microservices/prayer/friday-prayer" && nextTrigger) {
+    return (
+      <span class="next-trigger">Friday at {nextTrigger.fridayPrayer}</span>
     );
   }
 
@@ -70,7 +79,11 @@ app.get("/", async (c) => {
   const activeReminders = await db.select().from(reminders);
 
   // Fetch next trigger times for prayer reminders
-  let nextTrigger: { fajrWakeUp: string; sunriseWakeUp: string } | null = null;
+  let nextTrigger: {
+    fajrWakeUp: string;
+    sunriseWakeUp: string;
+    fridayPrayer: string;
+  } | null = null;
   try {
     nextTrigger = await getNextTriggerTimes();
   } catch (e) {
