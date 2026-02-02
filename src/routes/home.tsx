@@ -7,6 +7,24 @@ import { getNextTriggerTimes } from "./microservices/prayer/utils";
 
 import cronstrue from "cronstrue";
 
+/**
+ * Convert UTC cron expression to WIB (UTC+7) for display
+ * Only converts the hour field, leaves other fields unchanged
+ */
+function cronUtcToWib(cron: string): string {
+  const parts = cron.split(" ");
+  if (parts.length !== 5) return cron;
+
+  const [minute, hour, day, month, weekday] = parts;
+
+  // Convert hour from UTC to WIB (+7)
+  const hourNum = parseInt(hour, 10);
+  if (isNaN(hourNum)) return cron; // If hour is not a simple number (e.g., */2), skip
+
+  const wibHour = (hourNum + 7) % 24;
+  return `${minute} ${wibHour} ${day} ${month} ${weekday}`;
+}
+
 function formatSchedule(
   schedule: string,
   apiUrl: string | null,
@@ -19,27 +37,29 @@ function formatSchedule(
   // For prayer-based conditional reminders, show next trigger time
   if (apiUrl === "/microservices/prayer/wake-up" && nextTrigger) {
     return (
-      <span class="next-trigger">Tomorrow at {nextTrigger.fajrWakeUp}</span>
+      <span class="next-trigger">Tomorrow at {nextTrigger.fajrWakeUp} WIB</span>
     );
   }
   if (apiUrl === "/microservices/prayer/wake-up-sunrise" && nextTrigger) {
     return (
-      <span class="next-trigger">Tomorrow at {nextTrigger.sunriseWakeUp}</span>
+      <span class="next-trigger">
+        Tomorrow at {nextTrigger.sunriseWakeUp} WIB
+      </span>
     );
   }
   if (apiUrl === "/microservices/prayer/friday-prayer" && nextTrigger) {
     return (
-      <span class="next-trigger">Friday at {nextTrigger.fridayPrayer}</span>
+      <span class="next-trigger">Friday at {nextTrigger.fridayPrayer} WIB</span>
     );
   }
 
   try {
-    // Check if it's a cron string first
-    const cronText = cronstrue.toString(schedule);
-    // Wrap in span for client-side enhancement
+    // Convert UTC cron to WIB for display
+    const wibCron = cronUtcToWib(schedule);
+    const cronText = cronstrue.toString(wibCron);
     return (
       <span class="local-cron" data-cron={schedule}>
-        {cronText} (UTC)
+        {cronText} (WIB)
       </span>
     );
   } catch (e) {
