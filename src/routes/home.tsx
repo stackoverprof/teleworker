@@ -5,13 +5,11 @@ import { eq } from "drizzle-orm";
 import type { Env } from "../services/scheduler";
 import { getNextTriggerTimes } from "./microservices/prayer/utils";
 
-import cronstrue from "cronstrue";
-
 /**
- * Convert UTC cron expression to WIB (UTC+7) for display
- * Only converts the hour field, leaves other fields unchanged
+ * Convert UTC cron expression to WIB (UTC+7) and format as readable string
+ * Returns format like "Friday at 14:30" or "Daily at 17:00"
  */
-function cronUtcToWib(cron: string): string {
+function formatCronToWib(cron: string): string {
   const parts = cron.split(" ");
   if (parts.length !== 5) return cron;
 
@@ -22,7 +20,33 @@ function cronUtcToWib(cron: string): string {
   if (isNaN(hourNum)) return cron; // If hour is not a simple number (e.g., */2), skip
 
   const wibHour = (hourNum + 7) % 24;
-  return `${minute} ${wibHour} ${day} ${month} ${weekday}`;
+  const timeStr = `${String(wibHour).padStart(2, "0")}:${minute.padStart(2, "0")}`;
+
+  // Format weekday
+  const weekdayNames: Record<string, string> = {
+    "0": "Sunday",
+    "1": "Monday",
+    "2": "Tuesday",
+    "3": "Wednesday",
+    "4": "Thursday",
+    "5": "Friday",
+    "6": "Saturday",
+  };
+
+  // Check for patterns
+  if (day === "*" && month === "*") {
+    if (weekday === "*") {
+      return `Daily at ${timeStr}`;
+    } else if (weekdayNames[weekday]) {
+      return `${weekdayNames[weekday]} at ${timeStr}`;
+    } else if (weekday.includes("-")) {
+      // Range like 1-5 for Mon-Fri
+      return `Weekdays at ${timeStr}`;
+    }
+  }
+
+  // Fallback to the original cron for complex expressions
+  return `${timeStr} (cron)`;
 }
 
 function formatSchedule(
@@ -37,36 +61,31 @@ function formatSchedule(
   // For prayer-based conditional reminders, show next trigger time
   if (apiUrl === "/microservices/prayer/wake-up" && nextTrigger) {
     return (
-      <span class="next-trigger">Tomorrow at {nextTrigger.fajrWakeUp} WIB</span>
+      <span class="next-trigger">Tomorrow at {nextTrigger.fajrWakeUp}</span>
     );
   }
   if (apiUrl === "/microservices/prayer/wake-up-sunrise" && nextTrigger) {
     return (
-      <span class="next-trigger">
-        Tomorrow at {nextTrigger.sunriseWakeUp} WIB
-      </span>
+      <span class="next-trigger">Tomorrow at {nextTrigger.sunriseWakeUp}</span>
     );
   }
   if (apiUrl === "/microservices/prayer/friday-prayer" && nextTrigger) {
     return (
-      <span class="next-trigger">Friday at {nextTrigger.fridayPrayer} WIB</span>
+      <span class="next-trigger">Friday at {nextTrigger.fridayPrayer}</span>
     );
   }
 
   try {
-    // Convert UTC cron to WIB for display
-    const wibCron = cronUtcToWib(schedule);
-    const cronText = cronstrue.toString(wibCron);
+    const formatted = formatCronToWib(schedule);
     return (
       <span class="local-cron" data-cron={schedule}>
-        {cronText} (WIB)
+        {formatted}
       </span>
     );
   } catch (e) {
-    // If cronstrue fails, it might be a date
+    // If parsing fails, it might be a date
     const date = new Date(schedule);
     if (!isNaN(date.getTime())) {
-      // Render a span that the client-side script will update
       return (
         <span class="local-time" data-time={schedule}>
           {schedule}
