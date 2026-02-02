@@ -3,7 +3,7 @@ import { createDb } from "../db";
 import { reminders } from "../db/schema";
 import { matchesCron, isCronExpression } from "../lib/cron";
 import { sendMessage } from "./telegram";
-import { makeCall } from "./callmebot";
+import { makeTwilioCall } from "./twilio";
 import { getFearGreedIndex } from "../routes/microservices/fng/utils";
 import {
   isFiveMinutesBeforeFajr,
@@ -16,7 +16,10 @@ import {
 export interface Env {
   DB: D1Database;
   TELEGRAM_BOT_TOKEN: string;
-  CALLMEBOT_USER: string;
+  TWILIO_ACCOUNT_SID: string;
+  TWILIO_AUTH_TOKEN: string;
+  TWILIO_PHONE_NUMBER: string;
+  MY_PHONE_NUMBER: string;
 }
 
 export async function processReminders(env: Env): Promise<void> {
@@ -125,9 +128,12 @@ export async function processReminders(env: Env): Promise<void> {
       try {
         await sendMessage(chatId, reminder.message, env.TELEGRAM_BOT_TOKEN);
 
-        // Make call if ring is enabled
+        // Make call if ring is enabled (using Twilio)
         if (reminder.ring === 1) {
-          await makeCall(env.CALLMEBOT_USER, reminder.message);
+          const result = await makeTwilioCall(reminder.message, env);
+          if (!result.success) {
+            console.error(`[Twilio] Failed to call: ${result.error}`);
+          }
         }
       } catch (e) {
         console.error(`Failed to notify ${chatId}:`, e);
