@@ -9,7 +9,7 @@
 
 **Your personal Telegram assistant, running serverlessly on Cloudflare Workers.**
 
-[Features](#-features) • [Architecture](#-architecture) • [Setup](#-setup) • [Usage](#-usage)
+[Features](#-features) • [Quick Start](#-quick-start) • [Configuration](#-configuration) • [Usage](#-usage)
 
 </div>
 
@@ -17,37 +17,163 @@
 
 ## ✨ Features
 
-### 🔔 Smart Reminders
+- 🔔 **Smart Reminders** - Cron-based, one-time, or conditional triggers
+- 📞 **Phone Calls** - Get called for critical reminders via CallMeBot
+- 🕌 **Prayer Times** - Fajr, sunrise, and Jumu'ah reminders
+- 📊 **Crypto Alerts** - BTC Fear & Greed extreme notifications
+- 🤖 **AI Integration** - MCP server for Claude Desktop
 
-- **Cron-based scheduling** - Set recurring reminders with cron expressions
-- **One-time scheduling** - Schedule reminders for specific dates/times
-- **Conditional triggers** - Reminders that only fire when conditions are met
-- **Phone calls** - Get called via CallMeBot for critical reminders
+---
 
-### 🕌 Prayer Times Integration
+## 🚀 Quick Start
 
-- Fetches daily prayer times from [Aladhan API](https://aladhan.com/prayer-times-api)
-- **Fajr Wake-up Alarm** - 5 minutes before Fajr with phone call
-- **Sunrise Alarm** - 10 minutes before sunrise
-- **Friday Prayer Reminder** - 30 minutes before Jumu'ah
+### Prerequisites
 
-### 📊 Crypto Fear & Greed Index
+- [Node.js](https://nodejs.org/) 18+
+- [Cloudflare account](https://dash.cloudflare.com/sign-up) (free tier works)
+- Telegram account
 
-- Fetches BTC Fear & Greed Index from [Alternative.me](https://alternative.me/crypto/fear-and-greed-index/)
-- Alerts on extreme fear (≤24) or extreme greed (≥76)
-- Dynamic messages with live data interpolation
+### Step 1: Clone & Install
 
-### 🗓️ Meeting Reminders
+```bash
+git clone https://github.com/stackoverprof/teleworker.git
+cd teleworker
+npm install
+```
 
-- Weekly meeting reminders (Fridays)
-- Monthly meeting reminders (Last Thursday of month)
-- Pre-meeting and start-time notifications
+### Step 2: Create Telegram Bot
 
-### 🤖 MCP Server (AI Integration)
+1. Open Telegram and message [@BotFather](https://t.me/BotFather)
+2. Send `/newbot` and follow the prompts
+3. **Save the token** (looks like `123456789:ABCdefGHI...`)
 
-- Built-in [Model Context Protocol](https://modelcontextprotocol.io/) server
-- Connect Claude Desktop or other AI assistants
-- Manage reminders through natural language
+### Step 3: Get Your Chat ID
+
+This is needed so your bot knows where to send messages.
+
+1. Message [@userinfobot](https://t.me/userinfobot) on Telegram
+2. It will reply with your **Chat ID** (a number like `925512522`)
+3. **Save this number** - you'll use it when creating reminders
+
+### Step 4: Setup CallMeBot (for phone calls)
+
+1. Message [@CallMeBot_txtbot](https://t.me/CallMeBot_txtbot) on Telegram
+2. It will authorize your account for voice calls
+3. Note your Telegram username (e.g., `@yourusername`)
+
+### Step 5: Create D1 Database
+
+```bash
+npx wrangler d1 create teleworker-db
+```
+
+This outputs a database ID. Copy it and update `wrangler.toml`:
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "teleworker-db"
+database_id = "YOUR_DATABASE_ID_HERE"  # ← Paste here
+```
+
+### Step 6: Run Migrations
+
+```bash
+npm run db:migrate
+```
+
+### Step 7: Set Secrets
+
+```bash
+# Your Telegram bot token from Step 2
+npx wrangler secret put TELEGRAM_BOT_TOKEN
+
+# A password to protect your API (make up any secure password)
+npx wrangler secret put ADMIN_PASSWORD
+```
+
+### Step 8: Update wrangler.toml
+
+Edit `wrangler.toml` and set your CallMeBot username:
+
+```toml
+[vars]
+CALLMEBOT_USER = "@yourusername"  # ← Your Telegram username
+```
+
+### Step 9: Deploy!
+
+```bash
+npm run deploy
+```
+
+Your bot is now live at `https://teleworker.YOUR_SUBDOMAIN.workers.dev` 🎉
+
+---
+
+## 🔧 Configuration
+
+### All Configuration Values
+
+| Value                | Where to Set            | How to Get It                                 |
+| -------------------- | ----------------------- | --------------------------------------------- |
+| `TELEGRAM_BOT_TOKEN` | `wrangler secret put`   | From [@BotFather](https://t.me/BotFather)     |
+| `ADMIN_PASSWORD`     | `wrangler secret put`   | Make up any secure password                   |
+| `database_id`        | `wrangler.toml`         | From `wrangler d1 create` output              |
+| `CALLMEBOT_USER`     | `wrangler.toml` (vars)  | Your Telegram @username                       |
+| `chatIds`            | When creating reminders | From [@userinfobot](https://t.me/userinfobot) |
+
+### Optional: Customize Location
+
+Prayer times are configured for Jakarta. To change, edit `src/lib/constants.ts`:
+
+```typescript
+export const COORDINATES = {
+  latitude: -6.2088, // Your latitude
+  longitude: 106.8456, // Your longitude
+};
+export const TIMEZONE = "Asia/Jakarta"; // Your timezone
+```
+
+---
+
+## � Usage
+
+### Creating a Reminder
+
+```bash
+curl -X POST https://your-worker.workers.dev/reminders \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Password: YOUR_PASSWORD" \
+  -d '{
+    "name": "Daily Standup",
+    "message": "🚀 Time for standup meeting!",
+    "chatIds": "YOUR_CHAT_ID",
+    "when": "0 2 * * 1-5",
+    "ring": 0,
+    "active": 1
+  }'
+```
+
+### Field Reference
+
+| Field     | Type    | Description                                                         |
+| --------- | ------- | ------------------------------------------------------------------- |
+| `name`    | string  | Display name for the reminder                                       |
+| `message` | string  | Message to send (supports `{{variables}}`)                          |
+| `chatIds` | string  | Your Telegram chat ID from [@userinfobot](https://t.me/userinfobot) |
+| `when`    | string  | Cron expression (UTC) or ISO date                                   |
+| `ring`    | 0 or 1  | 0 = Telegram message, 1 = Phone call                                |
+| `active`  | 0 or 1  | 0 = Paused, 1 = Active                                              |
+| `apiUrl`  | string? | Optional internal route for conditional triggers                    |
+
+### Cron Examples
+
+| Cron          | Meaning                            |
+| ------------- | ---------------------------------- |
+| `0 2 * * 1-5` | 2:00 AM UTC, Mon-Fri (9:00 AM WIB) |
+| `30 7 * * 5`  | 7:30 AM UTC, Friday (2:30 PM WIB)  |
+| `0 10 * * *`  | 10:00 AM UTC, daily (5:00 PM WIB)  |
 
 ---
 
@@ -70,7 +196,6 @@
 │                      ▼                                      │
 │              ┌───────────────┐                              │
 │              │   D1 SQLite   │                              │
-│              │   Database    │                              │
 │              └───────────────┘                              │
 └─────────────────────────────────────────────────────────────┘
                        │
@@ -81,122 +206,6 @@
    │  Bot API    │          │  (Calls)    │
    └─────────────┘          └─────────────┘
 ```
-
----
-
-## 🛠️ Tech Stack
-
-| Component       | Technology                                             |
-| --------------- | ------------------------------------------------------ |
-| **Runtime**     | Cloudflare Workers                                     |
-| **Framework**   | [Hono](https://hono.dev/)                              |
-| **Database**    | D1 (SQLite) + [Drizzle ORM](https://orm.drizzle.team/) |
-| **Language**    | TypeScript                                             |
-| **Styling**     | JSX (Server-rendered)                                  |
-| **AI Protocol** | MCP (Model Context Protocol)                           |
-
----
-
-## 🚀 Setup
-
-### Prerequisites
-
-- Node.js 18+
-- Cloudflare account
-- Telegram Bot (from [@BotFather](https://t.me/BotFather))
-- CallMeBot authorized (message [@CallMeBot_txtbot](https://t.me/CallMeBot_txtbot))
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/stackoverprof/teleworker.git
-cd teleworker
-
-# Install dependencies
-npm install
-
-# Create D1 database
-wrangler d1 create teleworker-db
-# Update database_id in wrangler.toml
-
-# Run migrations
-npm run db:migrate
-
-# Set secrets
-wrangler secret put TELEGRAM_BOT_TOKEN
-wrangler secret put ADMIN_PASSWORD
-wrangler secret put CALLMEBOT_USER
-```
-
-### Development
-
-```bash
-npm run dev
-```
-
-### Deploy
-
-```bash
-npm run deploy
-```
-
----
-
-## 📖 Usage
-
-### API Endpoints
-
-| Endpoint                | Method | Description                  |
-| ----------------------- | ------ | ---------------------------- |
-| `/`                     | GET    | Dashboard with all reminders |
-| `/reminders`            | GET    | List all reminders           |
-| `/reminders`            | POST   | Create a reminder            |
-| `/reminders/:id`        | PUT    | Update a reminder            |
-| `/reminders/:id`        | DELETE | Delete a reminder            |
-| `/microservices/prayer` | GET    | Current prayer times         |
-| `/microservices/fng`    | GET    | Fear & Greed Index           |
-| `/mcp/sse`              | GET    | MCP Server (SSE)             |
-
-### Creating a Reminder
-
-```bash
-curl -X POST https://your-worker.workers.dev/reminders \
-  -H "Content-Type: application/json" \
-  -H "X-Admin-Password: YOUR_PASSWORD" \
-  -d '{
-    "name": "Daily Standup",
-    "message": "🚀 Time for standup meeting!",
-    "chatIds": "YOUR_CHAT_ID",
-    "when": "0 2 * * 1-5",
-    "ring": 0,
-    "active": 1
-  }'
-```
-
-### Conditional Reminders
-
-Use `apiUrl` to add conditions:
-
-```json
-{
-  "name": "Wake Up Alarm",
-  "message": "🌅 Fajr is at {{time}}!",
-  "when": "* * * * *",
-  "apiUrl": "/microservices/prayer/wake-up",
-  "ring": 1
-}
-```
-
-The reminder only fires when the internal check returns `true`.
-
----
-
-## 🔐 Security
-
-- All write operations require `X-Admin-Password` header
-- Secrets stored in Cloudflare Workers secrets (not in code)
-- MCP endpoint protected with token authentication
 
 ---
 
