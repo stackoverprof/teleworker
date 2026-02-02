@@ -86,9 +86,29 @@ function formatSchedule(
     // If parsing fails, it might be a date
     const date = new Date(schedule);
     if (!isNaN(date.getTime())) {
+      // Convert UTC to WIB (+7 hours)
+      const wibDate = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const month = months[wibDate.getUTCMonth()];
+      const day = wibDate.getUTCDate();
+      const hour = String(wibDate.getUTCHours()).padStart(2, "0");
+      const minute = String(wibDate.getUTCMinutes()).padStart(2, "0");
       return (
         <span class="local-time" data-time={schedule}>
-          {schedule}
+          {month} {day} at {hour}:{minute}
         </span>
       );
     }
