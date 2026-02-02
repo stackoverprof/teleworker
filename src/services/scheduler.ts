@@ -76,7 +76,7 @@ export async function processReminders(env: Env): Promise<void> {
             const times = await getPrayerTimes();
             return { trigger, data: { time: times.Dhuhr } };
           },
-          "/internal/last-thursday-check": async () => {
+          "/microservices/meetings/monthly": async () => {
             const trigger = isLastThursdayOfMonth();
             return { trigger, data: {} };
           },
