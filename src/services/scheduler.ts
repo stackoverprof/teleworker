@@ -8,6 +8,8 @@ import { getFearGreedIndex } from "../routes/microservices/fng/utils";
 import {
   isFiveMinutesBeforeFajr,
   is10MinutesBeforeSunrise,
+  is30MinutesBeforeFridayPrayer,
+  isLastThursdayOfMonth,
   getPrayerTimes,
 } from "../routes/microservices/prayer/utils";
 
@@ -68,6 +70,15 @@ export async function processReminders(env: Env): Promise<void> {
             const trigger = await isFiveMinutesBeforeFajr();
             const times = await getPrayerTimes();
             return { trigger, data: { time: times.Fajr } };
+          },
+          "/microservices/prayer/friday-prayer": async () => {
+            const trigger = await is30MinutesBeforeFridayPrayer();
+            const times = await getPrayerTimes();
+            return { trigger, data: { time: times.Dhuhr } };
+          },
+          "/internal/last-thursday-check": async () => {
+            const trigger = isLastThursdayOfMonth();
+            return { trigger, data: {} };
           },
         };
 

@@ -160,3 +160,52 @@ export async function getNextTriggerTimes(): Promise<{
     sunriseWakeUp: formatTime(sunriseWakeUp),
   };
 }
+
+/**
+ * Check if it is currently exactly 30 minutes before Dhuhr on a Friday
+ */
+export async function is30MinutesBeforeFridayPrayer(): Promise<boolean> {
+  const now = new Date(
+    new Date().toLocaleString("en-US", { timeZone: TIMEZONE }),
+  );
+
+  // Check if today is Friday (5 = Friday in JS)
+  if (now.getDay() !== 5) {
+    return false;
+  }
+
+  const timings = await getPrayerTimes();
+  const dhuhrTime = timings.Dhuhr; // "12:05" etc
+
+  const [dhuhrHour, dhuhrMinute] = dhuhrTime.split(":").map(Number);
+  const dhuhrDate = new Date(now);
+  dhuhrDate.setHours(dhuhrHour, dhuhrMinute, 0, 0);
+
+  // Subtract 30 minutes
+  const reminderTime = new Date(dhuhrDate.getTime() - 30 * 60 * 1000);
+
+  return (
+    now.getHours() === reminderTime.getHours() &&
+    now.getMinutes() === reminderTime.getMinutes()
+  );
+}
+
+/**
+ * Check if today is the last Thursday of the month
+ */
+export function isLastThursdayOfMonth(): boolean {
+  const now = new Date(
+    new Date().toLocaleString("en-US", { timeZone: TIMEZONE }),
+  );
+
+  // Check if today is Thursday (4 = Thursday in JS)
+  if (now.getDay() !== 4) {
+    return false;
+  }
+
+  // Check if there's another Thursday this month
+  const nextThursday = new Date(now);
+  nextThursday.setDate(now.getDate() + 7);
+
+  return nextThursday.getMonth() !== now.getMonth();
+}
