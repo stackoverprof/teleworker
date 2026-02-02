@@ -88,8 +88,11 @@ export async function isFiveMinutesBeforeFajr(): Promise<boolean> {
   // Subtract 5 minutes
   const wakeUpTime = new Date(fajrDate.getTime() - 5 * 60 * 1000);
 
-  // Compare with current time (ignore seconds)
-  return now.getMinutes() === wakeUpTime.getMinutes();
+  // Compare with current time (check BOTH hour AND minute)
+  return (
+    now.getHours() === wakeUpTime.getHours() &&
+    now.getMinutes() === wakeUpTime.getMinutes()
+  );
 }
 
 /**
@@ -102,7 +105,7 @@ export async function is10MinutesBeforeSunrise(): Promise<boolean> {
   const [sunriseHour, sunriseMinute] = sunriseTime.split(":").map(Number);
 
   const now = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+    new Date().toLocaleString("en-US", { timeZone: TIMEZONE }),
   );
   const sunriseDate = new Date(now);
   sunriseDate.setHours(sunriseHour, sunriseMinute, 0, 0);
