@@ -30,7 +30,7 @@ Add this to your `claude_desktop_config.json`:
       "command": "node",
       "args": ["/ABSOLUTE/PATH/TO/teleworker/mcp/build/index.js"],
       "env": {
-        "ADMIN_PASSWORD": "YOUR_ADMIN_PASSWORD"
+        "ADMIN_PASSWORD": "YOUR_ADMIN_PASSWORD_HERE"
       }
     }
   }
