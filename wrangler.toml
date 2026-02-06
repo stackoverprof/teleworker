@@ -10,6 +10,3 @@ binding = "DB"
 database_name = "teleworker-db"
 database_id = "df74560f-a911-44f0-9aa0-b6f873b48e49"
 migrations_dir = "drizzle/migrations"
-
-[vars]
-CALLMEBOT_USER = "@errbint"

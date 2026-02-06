@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { remindersRoute } from "./routes/reminders";
 import { microservices } from "./routes/microservices";
 import { homeRoute } from "./routes/home";
+import { automationRoute } from "./routes/automation";
 import { processReminders, type Env } from "./services/scheduler";
 
 import { mcpRoute } from "./routes/mcp";
@@ -13,6 +14,7 @@ app.route("/", homeRoute);
 app.route("/reminders", remindersRoute);
 app.route("/microservices", microservices);
 app.route("/mcp", mcpRoute);
+app.route("/automation", automationRoute);
 app.get("/health", (c) => c.json({ ok: true }));
 
 // Export for CF Workers

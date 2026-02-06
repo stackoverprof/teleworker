@@ -18,7 +18,7 @@
 ## ✨ Features
 
 - 🔔 **Smart Reminders** - Cron-based, one-time, or conditional triggers
-- 📞 **Phone Calls** - Get called for critical reminders via CallMeBot
+- ⏰ **iOS Automation** - `/automation` endpoint for iOS Shortcuts alarms
 - 🕌 **Prayer Times** - Fajr, sunrise, and Jumu'ah reminders
 - 📊 **Crypto Alerts** - BTC Fear & Greed extreme notifications
 - 🤖 **AI Integration** - MCP server for Claude Desktop
@@ -55,13 +55,7 @@ This is needed so your bot knows where to send messages.
 2. It will reply with your **Chat ID** (a number like `925512522`)
 3. **Save this number** - you'll use it when creating reminders
 
-### Step 4: Setup CallMeBot (for phone calls)
-
-1. Message [@CallMeBot_txtbot](https://t.me/CallMeBot_txtbot) on Telegram
-2. It will authorize your account for voice calls
-3. Note your Telegram username (e.g., `@yourusername`)
-
-### Step 5: Create D1 Database
+### Step 4: Create D1 Database
 
 ```bash
 npx wrangler d1 create teleworker-db
@@ -76,13 +70,13 @@ database_name = "teleworker-db"
 database_id = "YOUR_DATABASE_ID_HERE"  # ← Paste here
 ```
 
-### Step 6: Run Migrations
+### Step 5: Run Migrations
 
 ```bash
 npm run db:migrate
 ```
 
-### Step 7: Set Secrets
+### Step 6: Set Secrets
 
 ```bash
 # Your Telegram bot token from Step 2
@@ -92,16 +86,7 @@ npx wrangler secret put TELEGRAM_BOT_TOKEN
 npx wrangler secret put ADMIN_PASSWORD
 ```
 
-### Step 8: Update wrangler.toml
-
-Edit `wrangler.toml` and set your CallMeBot username:
-
-```toml
-[vars]
-CALLMEBOT_USER = "@yourusername"  # ← Your Telegram username
-```
-
-### Step 9: Deploy!
+### Step 7: Deploy!
 
 ```bash
 npm run deploy
@@ -120,7 +105,6 @@ Your bot is now live at `https://teleworker.YOUR_SUBDOMAIN.workers.dev` 🎉
 | `TELEGRAM_BOT_TOKEN` | `wrangler secret put`   | From [@BotFather](https://t.me/BotFather)     |
 | `ADMIN_PASSWORD`     | `wrangler secret put`   | Make up any secure password                   |
 | `database_id`        | `wrangler.toml`         | From `wrangler d1 create` output              |
-| `CALLMEBOT_USER`     | `wrangler.toml` (vars)  | Your Telegram @username                       |
 | `chatIds`            | When creating reminders | From [@userinfobot](https://t.me/userinfobot) |
 
 ### Optional: Customize Location
@@ -163,7 +147,7 @@ curl -X POST https://your-worker.workers.dev/reminders \
 | `message` | string  | Message to send (supports `{{variables}}`)                          |
 | `chatIds` | string  | Your Telegram chat ID from [@userinfobot](https://t.me/userinfobot) |
 | `when`    | string  | Cron expression (UTC) or ISO date                                   |
-| `ring`    | 0 or 1  | 0 = Telegram message, 1 = Phone call                                |
+| `ring`    | 0 or 1  | 0 = Telegram only, 1 = Include in /automation for iOS alarms        |
 | `active`  | 0 or 1  | 0 = Paused, 1 = Active                                              |
 | `apiUrl`  | string? | Optional internal route for conditional triggers                    |
 
@@ -183,28 +167,28 @@ curl -X POST https://your-worker.workers.dev/reminders \
 ┌─────────────────────────────────────────────────────────────┐
 │                    Cloudflare Workers                       │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────┐  ┌─────────────┐  ┌──────────────────────────┐ │
-│  │  Hono   │  │  Scheduler  │  │     Microservices        │ │
-│  │ Router  │  │   (Cron)    │  ├──────────────────────────┤ │
-│  │         │  │             │  │ /fng      - Fear & Greed │ │
-│  │ /       │  │ * * * * *   │  │ /prayer   - Prayer Times │ │
-│  │ /remind │  │ Checks DB   │  │ /meetings - Monthly      │ │
-│  │ /mcp    │  │ every min   │  └──────────────────────────┘ │
-│  └────┬────┘  └──────┬──────┘                               │
-│       │              │                                      │
-│       └──────────────┼──────────────────────────────────────┤
-│                      ▼                                      │
-│              ┌───────────────┐                              │
-│              │   D1 SQLite   │                              │
-│              └───────────────┘                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────┐ │
+│  │    Hono     │  │  Scheduler  │  │    Microservices     │ │
+│  │   Router    │  │   (Cron)    │  ├──────────────────────┤ │
+│  │             │  │             │  │ /fng    - Fear&Greed │ │
+│  │ /reminders  │  │ * * * * *   │  │ /prayer - Prayer     │ │
+│  │ /automation │  │ Checks DB   │  │ /meetings - Monthly  │ │
+│  │ /mcp        │  │ every min   │  └──────────────────────┘ │
+│  └──────┬──────┘  └──────┬──────┘                           │
+│         │                │                                  │
+│         └────────────────┼──────────────────────────────────┤
+│                          ▼                                  │
+│                  ┌───────────────┐                          │
+│                  │   D1 SQLite   │                          │
+│                  └───────────────┘                          │
 └─────────────────────────────────────────────────────────────┘
-                       │
-          ┌────────────┴────────────┐
-          ▼                         ▼
-   ┌─────────────┐          ┌─────────────┐
-   │  Telegram   │          │  CallMeBot  │
-   │  Bot API    │          │  (Calls)    │
-   └─────────────┘          └─────────────┘
+                           │
+              ┌────────────┴────────────┐
+              ▼                         ▼
+       ┌─────────────┐          ┌─────────────┐
+       │  Telegram   │          │     iOS     │
+       │  Bot API    │          │  Shortcuts  │
+       └─────────────┘          └─────────────┘
 ```
 
 ---

@@ -1,9 +1,8 @@
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { createDb } from "../db";
 import { reminders } from "../db/schema";
 import { matchesCron, isCronExpression } from "../lib/cron";
 import { sendMessage } from "./telegram";
-import { makeCall } from "./callmebot";
 import { getFearGreedIndex } from "../routes/microservices/fng/utils";
 import {
   isFiveMinutesBeforeFajr,
@@ -16,7 +15,6 @@ import {
 export interface Env {
   DB: D1Database;
   TELEGRAM_BOT_TOKEN: string;
-  CALLMEBOT_USER: string;
 }
 
 export async function processReminders(env: Env): Promise<void> {
@@ -124,11 +122,6 @@ export async function processReminders(env: Env): Promise<void> {
     for (const chatId of chatIds) {
       try {
         await sendMessage(chatId, reminder.message, env.TELEGRAM_BOT_TOKEN);
-
-        // Make call if ring is enabled
-        if (reminder.ring === 1) {
-          await makeCall(env.CALLMEBOT_USER, reminder.message);
-        }
       } catch (e) {
         console.error(`Failed to notify ${chatId}:`, e);
       }
