@@ -100,12 +100,10 @@ Your bot is now live at `https://teleworker.YOUR_SUBDOMAIN.workers.dev` 🎉
 
 ### All Configuration Values
 
-| Value                | Where to Set            | How to Get It                                 |
-| -------------------- | ----------------------- | --------------------------------------------- |
-| `TELEGRAM_BOT_TOKEN` | `wrangler secret put`   | From [@BotFather](https://t.me/BotFather)     |
-| `ADMIN_PASSWORD`     | `wrangler secret put`   | Make up any secure password                   |
-| `database_id`        | `wrangler.toml`         | From `wrangler d1 create` output              |
-| `chatIds`            | When creating reminders | From [@userinfobot](https://t.me/userinfobot) |
+- `TELEGRAM_BOT_TOKEN` — Set via `wrangler secret put`, get from [@BotFather](https://t.me/BotFather)
+- `ADMIN_PASSWORD` — Set via `wrangler secret put`, make up any secure password
+- `database_id` — Set in `wrangler.toml`, get from `wrangler d1 create` output
+- `chatIds` — Used when creating reminders, get from [@userinfobot](https://t.me/userinfobot)
 
 ### Optional: Customize Location
 
@@ -141,23 +139,19 @@ curl -X POST https://your-worker.workers.dev/reminders \
 
 ### Field Reference
 
-| Field     | Type    | Description                                                         |
-| --------- | ------- | ------------------------------------------------------------------- |
-| `name`    | string  | Display name for the reminder                                       |
-| `message` | string  | Message to send (supports `{{variables}}`)                          |
-| `chatIds` | string  | Your Telegram chat ID from [@userinfobot](https://t.me/userinfobot) |
-| `when`    | string  | Cron expression (UTC) or ISO date                                   |
-| `ring`    | 0 or 1  | 0 = Telegram only, 1 = Include in /automation for iOS alarms        |
-| `active`  | 0 or 1  | 0 = Paused, 1 = Active                                              |
-| `apiUrl`  | string? | Optional internal route for conditional triggers                    |
+- `name` (string) — Display name for the reminder
+- `message` (string) — Message to send (supports `{{variables}}`)
+- `chatIds` (string) — Your Telegram chat ID from [@userinfobot](https://t.me/userinfobot)
+- `when` (string) — Cron expression (UTC) or ISO date
+- `ring` (0 or 1) — 0 = Telegram only, 1 = Include in /automation for iOS alarms
+- `active` (0 or 1) — 0 = Paused, 1 = Active
+- `apiUrl` (string, optional) — Internal route for conditional triggers
 
 ### Cron Examples
 
-| Cron          | Meaning                            |
-| ------------- | ---------------------------------- |
-| `0 2 * * 1-5` | 2:00 AM UTC, Mon-Fri (9:00 AM WIB) |
-| `30 7 * * 5`  | 7:30 AM UTC, Friday (2:30 PM WIB)  |
-| `0 10 * * *`  | 10:00 AM UTC, daily (5:00 PM WIB)  |
+- `0 2 * * 1-5` — 2:00 AM UTC, Mon-Fri (9:00 AM WIB)
+- `30 7 * * 5` — 7:30 AM UTC, Friday (2:30 PM WIB)
+- `0 10 * * *` — 10:00 AM UTC, daily (5:00 PM WIB)
 
 ---
 
