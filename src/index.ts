@@ -5,15 +5,12 @@ import { homeRoute } from "./routes/home";
 import { automationRoute } from "./routes/automation";
 import { processReminders, type Env } from "./services/scheduler";
 
-import { mcpRoute } from "./routes/mcp";
-
 const app = new Hono<{ Bindings: Env }>();
 
 // Routes
 app.route("/", homeRoute);
 app.route("/reminders", remindersRoute);
 app.route("/microservices", microservices);
-app.route("/mcp", mcpRoute);
 app.route("/automation", automationRoute);
 app.get("/health", (c) => c.json({ ok: true }));
 

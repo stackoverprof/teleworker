@@ -10,7 +10,6 @@
     "db:migrate:prod": "wrangler d1 migrations apply teleworker-db --remote"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.3",
     "cronstrue": "^3.11.0",
     "hono": "^4.0.0",
     "nanoid": "^5.0.0",

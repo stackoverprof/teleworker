@@ -21,7 +21,6 @@
 - ⏰ **iOS Automation** - `/automation` endpoint for iOS Shortcuts alarms
 - 🕌 **Prayer Times** - Fajr, sunrise, and Jumu'ah reminders
 - 📊 **Crypto Alerts** - BTC Fear & Greed extreme notifications
-- 🤖 **AI Integration** - MCP server for Claude Desktop
 
 ---
 
@@ -167,7 +166,7 @@ curl -X POST https://your-worker.workers.dev/reminders \
 │  │             │  │             │  │ /fng    - Fear&Greed │ │
 │  │ /reminders  │  │ * * * * *   │  │ /prayer - Prayer     │ │
 │  │ /automation │  │ Checks DB   │  │ /meetings - Monthly  │ │
-│  │ /mcp        │  │ every min   │  └──────────────────────┘ │
+│  │             │  │ every min   │  └──────────────────────┘ │
 │  └──────┬──────┘  └──────┬──────┘                           │
 │         │                │                                  │
 │         └────────────────┼──────────────────────────────────┤
