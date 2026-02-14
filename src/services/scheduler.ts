@@ -1,7 +1,13 @@
 import { eq } from "drizzle-orm";
 import { createDb } from "../db";
 import { reminders } from "../db/schema";
-import { matchesCron, isCronExpression } from "../lib/cron";
+import {
+  matchesCron,
+  isCronExpression,
+  isIntervalExpression,
+  parseInterval,
+  getNextIntervalDate,
+} from "../lib/cron";
 import { sendMessage } from "./telegram";
 import { getFearGreedIndex } from "../routes/microservices/fng/utils";
 import {
@@ -135,16 +141,25 @@ export async function processReminders(env: Env): Promise<void> {
   }
 }
 
-async function checkShouldTrigger(
+function checkShouldTrigger(
   reminder: typeof reminders.$inferSelect,
   now: Date,
-): Promise<boolean> {
-  if (isCronExpression(reminder.when)) {
-    // Recurring: check cron match
-    return matchesCron(reminder.when, now);
-  } else {
-    // Scheduled: check if time passed and not yet triggered
-    const scheduledTime = new Date(reminder.when);
-    return scheduledTime <= now && reminder.count === 0;
+): boolean {
+  // Interval-based: P9M@2025-09-13, P5Y@2021-01-15T10:00
+  if (isIntervalExpression(reminder.when)) {
+    const pattern = parseInterval(reminder.when);
+    if (!pattern) return false;
+
+    const nextDue = getNextIntervalDate(pattern, reminder.count);
+    return now >= nextDue;
   }
+
+  // Cron-based: 0 8 15 6,12 *
+  if (isCronExpression(reminder.when)) {
+    return matchesCron(reminder.when, now);
+  }
+
+  // One-time scheduled: ISO date
+  const scheduledTime = new Date(reminder.when);
+  return scheduledTime <= now && reminder.count === 0;
 }

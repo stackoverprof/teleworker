@@ -4,6 +4,7 @@ import { reminders } from "../db/schema";
 import { eq } from "drizzle-orm";
 import type { Env } from "../services/scheduler";
 import { getNextTriggerTimes } from "./microservices/prayer/utils";
+import { isIntervalExpression, formatInterval } from "../lib/cron";
 
 /**
  * Convert UTC cron expression to WIB (UTC+7) and format as readable string
@@ -73,6 +74,18 @@ function formatSchedule(
     return (
       <span class="next-trigger">Friday at {nextTrigger.fridayPrayer}</span>
     );
+  }
+
+  // Check if it's an interval expression (P9M@2025-09-13)
+  if (isIntervalExpression(schedule)) {
+    const formatted = formatInterval(schedule);
+    if (formatted) {
+      return (
+        <span class="interval" title={schedule}>
+          {formatted}
+        </span>
+      );
+    }
   }
 
   // Check if it's an ISO date string (contains T and ends with Z or has timezone)
